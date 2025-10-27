@@ -1,0 +1,53 @@
+/* Đảm bảo 3 dòng này luôn ở đầu */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+#app {
+    height: 100vh;
+}
+
+/* === BỘ SỬA LỖI AVATAR DAISYUI (FORCED FIX) - ĐÃ CẬP NHẬT KÍCH THƯỚC VÀ VỊ TRÍ === */
+
+/* Tăng kích thước chấm từ 0.5rem lên 0.75rem */
+.avatar.online::after {
+    background-color: #38f882; 
+    content: "";
+    position: absolute;
+    /* Lớn hơn: 0.75rem (thay vì 0.5rem) */
+    width: 0.75rem; 
+    height: 0.75rem; 
+    border-radius: 9999px;
+    right: 0;
+    /* Dịch chuyển lên trên */
+    top: 0; 
+    /* Dịch chuyển ra ngoài góc trên bên phải */
+    transform: translate(25%, -25%); 
+    /* Giữ nguyên viền */
+    border: 2px solid theme('colors.slate.800'); 
+    z-index: 10;
+}
+
+.avatar.offline::after {
+    background-color: #9ca3af;
+    content: "";
+    position: absolute;
+    /* Lớn hơn: 0.75rem (thay vì 0.5rem) */
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 9999px;
+    right: 0;
+    /* Dịch chuyển lên trên */
+    top: 0;
+    transform: translate(25%, -25%);
+    border: 2px solid theme('colors.slate.800');
+    z-index: 10;
+}
+
+/* Đảm bảo class avatar có position: relative */
+.avatar {
+    position: relative; 
+    display: inline-flex;
+}
+/* === END FORCED FIX === */
