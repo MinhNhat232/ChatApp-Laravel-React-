@@ -1,17 +1,39 @@
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import NewMessageInput from "./NewMessageInput";
 import { FaceSmileIcon, HandThumbUpIcon, PaperAirplaneIcon, PaperClipIcon, PhotoIcon } from "@heroicons/react/24/solid";
 import axios from "axios";
 import { useEventBus } from "@/EventBus";
+import EmojiPicker from "emoji-picker-react";
+import { Popover, Transition } from "@headlessui/react";
 
 
 const MessageInput = ({ conversation = null, onMessageSent }) => {
     const [newMessage, setNewMessage] = useState("");
     const [inputErrorMessage, setInputErrorMessage] = useState("");
     const [messageSending, setMessageSending] = useState(false);
-    const { emit } = useEventBus();
+    const [chosenFiles, setChosenFiles] = useState([]);
+    const [uploadProgress, setUploadProgress] = useState(0);
+
+    const onFileChange = (e) => {
+        const files = e.target.files;
+
+        const updatedFiles = [...files].map((file) => {
+            return {
+                file: file,
+                url: URL.createObjectURL(file),
+            };
+        });
+
+        setChosenFiles((prevFiles) => {
+            return [...prevFiles, ...updatedFiles];
+        });
+    }
 
     const onSendClick = () => {
+        if (messageSending) {
+            return;
+        }
+
         if (newMessage.trim() === "") {
             setInputErrorMessage("Please provide a message");
 
@@ -41,6 +63,7 @@ const MessageInput = ({ conversation = null, onMessageSent }) => {
                     );
                     // ... (Thiếu phần lưu giá trị 'progress' vào state hoặc nơi khác)
                     console.log(progress);
+                    setUploadProgress(progress);
                 },
             })
             .then((response) => {
@@ -49,12 +72,37 @@ const MessageInput = ({ conversation = null, onMessageSent }) => {
                 setNewMessage("");
                 setMessageSending(false);
                 onMessageSent(msg);
+                setUploadProgress(0);
+                setChosenFiles([]);
 
             })
             .catch((error) => {
                 setMessageSending(false);
+                setChosenFiles([]);
+                const message = error?.response?.data?.message;
+                setInputErrorMessage(
+                    message || "An error occurred while sending message"
+                );
             });
+    };
+
+    const onLikeClick = () => {
+        if (messageSending) {
+            return;
+        }
+        const data = {
+            message: "👍",
+        }
+
+        if (conversation.is_user) {
+            data["receiver_id"] = conversation.id;
+        } else if (conversation.is_group) {
+            data["group_id"] = conversation.id;
+        }
+
+        axios.post(route("message.store"), data)
     }
+
 
     return (
         <div className="flex flex-wrap items-start border-t border-slate-700 py-3">
@@ -73,6 +121,7 @@ const MessageInput = ({ conversation = null, onMessageSent }) => {
                         type="file"
                         multiple
                         accept="image/*"
+                        onChange={onFileChange}
                         className="absolute left-0 top-0 right-0 bottom-0 z-20 opacity-0 cursor-pointer"
                     />
                 </button>
@@ -85,23 +134,89 @@ const MessageInput = ({ conversation = null, onMessageSent }) => {
                         onChange={(e) => setNewMessage(e.target.value)} />
                     <button
                         onClick={onSendClick}
-                        className="btn btn-info rounded-l-none">
-                        {messageSending && (
-                            <span className="loading loading-spinner loading-xs"></span>
-                        )}
+                        disabled={messageSending}
+                        className="bg-blue-500 rounded-l-none">
+
                         <PaperAirplaneIcon className="w-6" />
                         <span className="hidden sm:inline">Send</span>
                     </button>
-                </div>
+                </div>{" "}
+                {!!uploadProgress && (
+                    <progress
+                        className="progress progress-info w-full"
+                        value={uploadProgress}
+                        max="100"></progress>
+                )}
                 {inputErrorMessage && (
                     <p className="text-xs text-red-400">{inputErrorMessage}</p>
                 )}
+                <div className="flex flex-wrap gap-1 mt-2">
+                    {chosenFiles.map((file) => (
+                        <div
+                            key={file.file.name}
+                            className={
+                                `relative flex justify-between cursor-pointer ` +
+                                (isImage(file.file) ? " w-[240px]" : "")
+                            }
+                        >
+                            {isImage(file.file) && (
+                                <img
+                                    src={file.url}
+                                    alt=""
+                                    className="w-16 h-16 object-cover" // w-16 h-16 tương đương width: 4rem/64px, height: 4rem/64px
+                                />
+                            )}
+
+                            {
+                                isAudio(file.file) && (
+                                    <CustomAudioPlayer
+                                        file={file}
+                                        showVolume={false}
+                                    />
+                                    // <audio src={file.url} controls></audio> // (Dòng này bị comment)
+                                )
+                            }
+                            {
+                                !isAudio(file.file) && !isImage(file.file) && (
+                                    <AttachmentPreview file={file} />
+                                )
+                            }
+
+
+                            <button
+                                onClick={() =>
+                                    setChosenFiles(
+                                        chosenFiles.filter(
+                                            (f) => f.file.name !== file.file.name
+                                        )
+                                    )
+                                }
+                                className="absolute w-6 h-6 rounded-full bg-gray-800
+                                -right-2 -top-2 text-gray-300 hover:text-gray-100 z-10"
+                            >
+                                <XCircleIcon className="w-6" />
+                            </button>
+
+                        </div>
+                    ))}
+                </div>
             </div>
+
             <div className="order-3 xs:order-3 p-2 flex">
-                <button className="p-1 text-gray-400 hover:text-gray-300">
-                    <FaceSmileIcon className="w-6 h-6" />
-                </button>
-                <button className="p-1 text-gray-400 hover:text-gray-300">
+                <Popover className="relative">
+                    <Popover.Button className="p-1 text-gray-400 hover:text-gray-300">
+                        <FaceSmileIcon className="w-6 h-6" />
+                    </Popover.Button>
+                    <Popover.Panel className="absolute z-10 right-0 bottom-full">
+                        <EmojiPicker
+                            theme="dark"
+                            onEmojiClick={(ev) =>
+                                setNewMessage(newMessage + ev.emoji)
+                            }
+                        />
+                    </Popover.Panel>
+                </Popover>
+                <button onClick={onLikeClick} className="p-1 text-gray-400 hover:text-gray-300">
                     <HandThumbUpIcon className="w-6 h-6" />
                 </button>
             </div>

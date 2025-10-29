@@ -6,12 +6,18 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import ChatLayout from '@/Layouts/ChatLayout';
 import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/solid';
 import { Head } from '@inertiajs/react';
-import { useEffect, useRef, useState } from 'react';
+import axios from 'axios';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 
 function Home({ selectedConversation = null, messages = null }) {
     const [localMessage, setLocalMessage] = useState([]);
+    const [noMoreMessages, setNoMoreMessage] = useState(false);
+    const [scrollFromBottom, setScrollFromBottom] = useState(0);
+    const [showAttachmentPreview, setShowAttachmentPreview] = useState(false);
+    const [previewAttachment, setPreviewAttachment] = useState({});
     const messagesCtrRef = useRef(null);
+    const loadMoreIntersect = useRef(null);
     const { on } = useEventBus();
 
     const messageCreated = (message) => {
@@ -27,6 +33,41 @@ function Home({ selectedConversation = null, messages = null }) {
         }
     };
 
+    const loadMoreMessages = useCallback(() => {
+
+        if (noMoreMessages) {
+            return;
+        }
+
+        const firstMessage = localMessage[0];
+        axios
+            .get(route("message.loadOlder", firstMessage.id))
+            .then(({ data }) => {
+                if (data.data.length === 0) {
+                    setNoMoreMessage(true);
+                    return;
+                }
+
+                const scrollHeight = messagesCtrRef.current.scrollHeight;
+                const scrollTop = messagesCtrRef.current.scrollTop;
+                const clientHeight = messagesCtrRef.current.clientHeight;
+                const tmpScrollFromBottom = scrollHeight - scrollTop - clientHeight;
+                console.log("tmpSCrollFromBottom ", tmpScrollFromBottom);
+                setScrollFromBottom(scrollHeight - scrollTop - clientHeight);
+
+                setLocalMessage((prevMessages) => {
+                    return [...data.data.reverse(), ...prevMessages];
+                });
+            });
+    }, [localMessage, noMoreMessages]);
+
+    const onAttachmentClick = (attachments, ind) => {
+        setPreviewAttachment({
+            attachments,
+            ind,
+        });
+        setShowAttachmentPreview(true);
+    };
 
     useEffect(() => {
         setTimeout(() => {
@@ -38,6 +79,9 @@ function Home({ selectedConversation = null, messages = null }) {
         console.log("🎧 Listening for event: message.created");
         const offCreated = on('message.created', messageCreated);
 
+        setScrollFromBottom(0);
+        setNoMoreMessage(false);
+
         return () => {
             offCreated();
         };
@@ -47,6 +91,40 @@ function Home({ selectedConversation = null, messages = null }) {
     useEffect(() => {
         setLocalMessage(messages ? messages.data.reverse() : []);
     }, [messages]);
+
+    useEffect(() => {
+        if (messagesCtrRef.current && scrollFromBottom !== null) {
+            messagesCtrRef.current.scrollTop =
+                messagesCtrRef.current.scrollHeight -
+                messagesCtrRef.current.offsetHeight -
+                scrollFromBottom;
+        }
+
+        if (noMoreMessages) {
+            return;
+        }
+
+
+        const observer = new IntersectionObserver(
+            (entries) =>
+                entries.forEach(
+                    (entry) => entry.isIntersecting && loadMoreMessages()
+                ),
+            {
+                rootMargin: "0px 0px 250px 0px",
+            }
+        );
+
+        if (loadMoreIntersect.current) {
+            setTimeout(() => {
+                observer.observe(loadMoreIntersect.current);
+            }, 100);
+        }
+
+        return () => {
+            observer.disconnect();
+        };
+    }, [localMessage]);
 
     return (
         <>
@@ -74,10 +152,11 @@ function Home({ selectedConversation = null, messages = null }) {
                             </div>
                         )}
 
-                        // File: Home.jsx (Quanh dòng 79)
+
 
                         {localMessage.length > 0 && (
                             <div className='flex-1 flex flex-col'>
+                                <div ref={loadMoreIntersect}></div>
                                 {localMessage
                                     .filter(message => message && message.id) // ✅ Thêm hàm filter này
                                     .map((message) => (
@@ -96,6 +175,17 @@ function Home({ selectedConversation = null, messages = null }) {
                     />
                 </>
             )}
+            {
+                previewAttachment.attachments && (
+                    <AttachmentPreviewModal
+                        attachments={previewAttachment.attachments}
+                        index={previewAttachment.ind}
+                        show={showAttachmentPreview}
+                        onClose={() => setShowAttachmentPreview(false)}
+                    />
+                )
+            }
+
 
         </>
     )

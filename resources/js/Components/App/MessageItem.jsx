@@ -5,7 +5,7 @@ import ReactMarkdown from "react-markdown";
 import { formatMessageDateLong } from "@/helpers";
 
 
-const MessageItem = ({ message }) => {
+const MessageItem = ({ message, attackmentClick }) => {
     const currentUser = usePage().props.auth.user;
 
     return (
@@ -33,8 +33,13 @@ const MessageItem = ({ message }) => {
             >
                 <div className="chat-message">
                     <div className="chat-message-content">
-                        <ReactMarkdown>{message.message}</ReactMarkdown>
+                        <div className="markdown prose max-w-none">
+                            <ReactMarkdown>{message.message}</ReactMarkdown>
+                        </div>
                     </div>
+                    <MessageAttachments
+                        attackments={message.attackments}
+                        attackmentClick={attackmentClick} />
 
                 </div>
             </div>
