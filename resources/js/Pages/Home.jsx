@@ -1,3 +1,4 @@
+import AttachmentPreviewModal from '@/Components/App/AttachmentPreviewModal';
 import ConversationHeader from '@/Components/App/ConversationHeader';
 import MessageInput from '@/Components/App/MessageInput';
 import MessageItem from '@/Components/App/MessageItem';
@@ -21,17 +22,31 @@ function Home({ selectedConversation = null, messages = null }) {
     const { on } = useEventBus();
 
     const messageCreated = (message) => {
-        console.log("📩 Event received:", message); // ✅ LOG THÊM 1
 
         if (selectedConversation && selectedConversation.is_group && selectedConversation.id === message.group_id) {
-            console.log("✅ Add message to group:", message.group_id); // ✅ LOG THÊM 2
             setLocalMessage((prevMessages) => [...prevMessages, message]);
         }
         if (selectedConversation && selectedConversation.is_user && (selectedConversation.id === message.sender_id || selectedConversation.id === message.receiver_id)) {
-            console.log("✅ Add message to private:", message.sender_id, message.receiver_id); // ✅ LOG THÊM 3
             setLocalMessage((prevMessages) => [...prevMessages, message]);
         }
     };
+
+
+    const messageDeleted = (message) => {
+
+        if (selectedConversation && selectedConversation.is_group && selectedConversation.id === message.group_id) {
+            setLocalMessage((prevMessages) => {
+                return prevMessages.filter((m) => m.id !== message.id);
+            });
+        }
+        if (selectedConversation && selectedConversation.is_user && (selectedConversation.id === message.sender_id || selectedConversation.id === message.receiver_id)) {
+            setLocalMessage((prevMessages) => {
+                return prevMessages.filter((m) => m.id !== message.id);
+            });
+        }
+    };
+
+
 
     const loadMoreMessages = useCallback(() => {
 
@@ -76,14 +91,16 @@ function Home({ selectedConversation = null, messages = null }) {
             }
         }, 10);
 
-        console.log("🎧 Listening for event: message.created");
+
         const offCreated = on('message.created', messageCreated);
+        const offDeleted = on('message.deleted', messageDeleted);
 
         setScrollFromBottom(0);
         setNoMoreMessage(false);
 
         return () => {
             offCreated();
+            offDeleted();
         };
     }, [selectedConversation]);
 
@@ -163,6 +180,7 @@ function Home({ selectedConversation = null, messages = null }) {
                                         <MessageItem
                                             key={message.id}
                                             message={message}
+                                            attachmentClick={onAttachmentClick}
                                         />
                                     ))}
                             </div>

@@ -1,10 +1,15 @@
 import { useState, Fragment } from "react";
 import NewMessageInput from "./NewMessageInput";
-import { FaceSmileIcon, HandThumbUpIcon, PaperAirplaneIcon, PaperClipIcon, PhotoIcon } from "@heroicons/react/24/solid";
+import { FaceSmileIcon, HandThumbUpIcon, PaperAirplaneIcon, PaperClipIcon, PhotoIcon, XCircleIcon } from "@heroicons/react/24/solid";
 import axios from "axios";
 import { useEventBus } from "@/EventBus";
 import EmojiPicker from "emoji-picker-react";
 import { Popover, Transition } from "@headlessui/react";
+
+import AttachmentPreview from "./AttachmentPreview";
+import { isAudio, isImage } from "@/helpers";
+import CustomAudioPlayer from "./CustomAudioPlayer";
+import AudioRecorder from "./AudioRecorder";
 
 
 const MessageInput = ({ conversation = null, onMessageSent }) => {
@@ -13,6 +18,7 @@ const MessageInput = ({ conversation = null, onMessageSent }) => {
     const [messageSending, setMessageSending] = useState(false);
     const [chosenFiles, setChosenFiles] = useState([]);
     const [uploadProgress, setUploadProgress] = useState(0);
+    const { emit } = useEventBus();
 
     const onFileChange = (e) => {
         const files = e.target.files;
@@ -23,6 +29,7 @@ const MessageInput = ({ conversation = null, onMessageSent }) => {
                 url: URL.createObjectURL(file),
             };
         });
+        e.target.value = null;
 
         setChosenFiles((prevFiles) => {
             return [...prevFiles, ...updatedFiles];
@@ -30,12 +37,13 @@ const MessageInput = ({ conversation = null, onMessageSent }) => {
     }
 
     const onSendClick = () => {
+
         if (messageSending) {
             return;
         }
 
-        if (newMessage.trim() === "") {
-            setInputErrorMessage("Please provide a message");
+        if (newMessage.trim() === "" && chosenFiles.length === 0) {
+            setInputErrorMessage("Please provide a message or upload attachments");
 
             setTimeout(() => {
                 setInputErrorMessage("");
@@ -43,6 +51,9 @@ const MessageInput = ({ conversation = null, onMessageSent }) => {
             return;
         }
         const formData = new FormData();
+        chosenFiles.forEach((file) => {
+            formData.append("attachments[]", file.file);
+        })
         formData.append("message", newMessage);
         if (conversation.is_user) {
             formData.append("receiver_id", conversation.id);
@@ -69,6 +80,7 @@ const MessageInput = ({ conversation = null, onMessageSent }) => {
             .then((response) => {
                 const msg = response.data;
                 console.log("Dữ liệu tin nhắn từ Server:", msg);
+                console.log("🟢 [DEBUG] Message ID:", msg.id);
                 setNewMessage("");
                 setMessageSending(false);
                 onMessageSent(msg);
@@ -101,7 +113,11 @@ const MessageInput = ({ conversation = null, onMessageSent }) => {
         }
 
         axios.post(route("message.store"), data)
-    }
+    };
+
+    const recordedAudioReady = (file, url) => {
+        setChosenFiles((prevFiles) => [...prevFiles, { file, url }]);
+    };
 
 
     return (
@@ -112,6 +128,7 @@ const MessageInput = ({ conversation = null, onMessageSent }) => {
                     <input
                         type="file"
                         multiple
+                        onChange={onFileChange}
                         className="absolute left-0 top-0 right-0 bottom-0 z-20 opacity-0 cursor-pointer"
                     />
                 </button>
@@ -125,6 +142,7 @@ const MessageInput = ({ conversation = null, onMessageSent }) => {
                         className="absolute left-0 top-0 right-0 bottom-0 z-20 opacity-0 cursor-pointer"
                     />
                 </button>
+                <AudioRecorder fileReady={recordedAudioReady} />
             </div>
             <div className="order-1 px-3 xs:p-0 min-w-[220px] basis-full xs:basis-0 xs:order-2 flex-1 relative">
                 <div className="flex ">
@@ -156,14 +174,14 @@ const MessageInput = ({ conversation = null, onMessageSent }) => {
                             key={file.file.name}
                             className={
                                 `relative flex justify-between cursor-pointer ` +
-                                (isImage(file.file) ? " w-[240px]" : "")
+                                (isImage(file.file) ? " w-[70px]" : "")
                             }
                         >
                             {isImage(file.file) && (
                                 <img
                                     src={file.url}
                                     alt=""
-                                    className="w-16 h-16 object-cover" // w-16 h-16 tương đương width: 4rem/64px, height: 4rem/64px
+                                    className="w-20 h-20 object-cover" // w-16 h-16 tương đương width: 4rem/64px, height: 4rem/64px
                                 />
                             )}
 

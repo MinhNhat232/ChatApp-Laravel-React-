@@ -9,7 +9,7 @@ const AttachmentPreview = ({ file }) => {
                 {isPDF(file.file) && <img src="/img/pdf.png" className="w-8" />}
                 {!isPreviewable(file.file) && (
                     <div className="flex justify-center items-center w-10 h-10 bg-gray-700 rounded">
-                        <PaperClipIconn className="w-6" />
+                        <PaperClipIcon className="w-6" />
                     </div>
                 )}
             </div>
