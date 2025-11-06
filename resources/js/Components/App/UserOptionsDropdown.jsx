@@ -8,14 +8,19 @@ import {
     EllipsisVerticalIcon,
 } from "@heroicons/react/24/solid";
 import axios from "axios";
+import { useEventBus } from "@/EventBus";
 
 export default function UserOptionsDropdown({ conversation }) {
+    const { emit } = useEventBus();
     const changeUserRole = () => {
         if (!conversation.is_user) return;
 
         axios
             .post(route("user.changeRole", conversation.id))
-            .then((res) => console.log(res.data))
+            .then((res) => {
+                emit("toast.show", `User role changed to ${res.data.message}`)
+                console.log(res.data)
+            })
             .catch((err) => console.error(err));
     };
 
@@ -24,7 +29,10 @@ export default function UserOptionsDropdown({ conversation }) {
 
         axios
             .post(route("user.blockUnblock", conversation.id))
-            .then((res) => console.log(res.data))
+            .then((res) => {
+                emit("toast.show", res.data.message);
+                console.log(res.data)
+            })
             .catch((err) => console.error(err));
     };
 

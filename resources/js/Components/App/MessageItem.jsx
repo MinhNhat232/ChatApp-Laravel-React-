@@ -2,14 +2,16 @@ import { usePage } from "@inertiajs/react";
 import UserAvatar from "./UserAvatar";
 import React from "react";
 import ReactMarkdown from "react-markdown";
-import { formatMessageDateLong } from "@/helpers";
+import { formatMessageDateLong, isAudio, isImage, isPDF, isVideo } from "@/helpers";
 import MessageAttachment from "./MessageAttachment";
 import MessageOptionsDropdown from "./MessageOptionDropdown";
 
 
 const MessageItem = ({ message, attachmentClick }) => {
     const currentUser = usePage().props.auth.user;
-
+    const isMediaMessage = message.attachments?.some(file =>
+        isImage(file) || isVideo(file) || isAudio(file) || isPDF(file)
+    );
 
 
 
@@ -19,21 +21,22 @@ const MessageItem = ({ message, attachmentClick }) => {
         )}>
             <UserAvatar user={message.sender} />
 
-            <div className="chat-header">
+            <div className="chat-header font-semibold text-sm text-white">
                 {message.sender_id !== currentUser.id
                     ? message.sender.name
                     : ""}
-                <time className="text-xs opacity-50 ml-2">
+
+                <time className="text-xs opacity-50 ml-2 text-gray-50">
                     {formatMessageDateLong(message.created_at)}
                 </time>
             </div>
 
             <div
                 className={
-                    "chat-bubble relative " +
-                    (message.sender_id === currentUser.id
-                        ? "chat-bubble-info"
-                        : "")
+                    isMediaMessage
+                        ? "" // không thêm bong bóng
+                        : "chat-bubble relative " +
+                        (message.sender_id === currentUser.id ? "chat-bubble-info" : "")
                 }
             >
                 {message.sender_id == currentUser.id && (
@@ -53,11 +56,13 @@ const MessageItem = ({ message, attachmentClick }) => {
 
 
                 </div>
+
             </div>
 
 
 
         </div>
+
     );
 };
 export default MessageItem;

@@ -120,3 +120,83 @@
     padding-left: 1.5em;
     padding-right: 1.5em;
 }
+
+/* ========== 💬 CHAT BUBBLE ========== */
+/* ========== 💬 CHAT BUBBLE (Messenger Style) ========== */
+.chat-bubble {
+  max-width: 40%;   
+  max-height: 90%;         /* Giới hạn chiều rộng tin nhắn */
+padding-left: 15px;  
+    padding-right: 10px;  
+    padding-top: 0%;
+    border-radius: 1rem;       /* Bo góc mềm mại hơn */
+    line-height: 1.4;          /* Cân chỉnh chiều cao dòng */
+    font-size: 0.95rem;
+  line-height: 1.5;
+  word-wrap: break-word;
+  background: #f1f0f0;
+  color: #111;
+  font-size: 0.95rem;
+  position: relative;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Tin nhắn của mình (phải) */
+.chat-bubble-info {
+  background: #0078ff;
+  color: #fff;
+  margin-left: auto;
+  border-bottom-right-radius: 4px;
+}
+
+/* Tin nhắn người khác (trái) */
+.chat-bubble:not(.chat-bubble-info) {
+  background: #3a3b3c;
+  color: #e4e6eb;
+  margin-right: auto;
+  border-bottom-left-radius: 4px;
+}
+
+/* Đuôi bong bóng */
+.chat-bubble::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  width: 0;
+  height: 0;
+  border: 6px solid transparent;
+}
+
+.chat-bubble-info::after {
+  right: -7px;
+  border-left-color: #0078ff;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.chat-bubble:not(.chat-bubble-info)::after {
+  left: -7px;
+  border-right-color: #3a3b3c;
+  border-left: 0;
+  border-bottom: 0;
+}
+
+/* Dark mode (giữ nền tối, xanh nổi bật) */
+.dark .chat-bubble {
+  background: #3a3b3c;
+  color: #e4e6eb;
+}
+
+.dark .chat-bubble-info {
+  background: #0866ff;
+  color: #fff;
+}
+
+.dark .chat-bubble-info::after {
+  border-left-color: #0866ff;
+}
+
+.dark .chat-bubble:not(.chat-bubble-info)::after {
+  border-right-color: #3a3b3c;
+}
+
