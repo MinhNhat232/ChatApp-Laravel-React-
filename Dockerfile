@@ -11,6 +11,9 @@ WORKDIR /app
 # Copy code vào container
 COPY . .
 
+# XÓA .env local để Laravel đọc env từ Render
+RUN rm -f .env
+
 # Cài composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 RUN composer install --no-dev --optimize-autoloader
@@ -21,5 +24,5 @@ RUN npm ci && npm run build
 # SQLite file cho DB
 RUN mkdir -p database && touch database/database.sqlite
 
-# Render sẽ truyền PORT, ta dùng php artisan serve
+# Migrate rồi serve
 CMD php artisan migrate --force && php artisan serve --host 0.0.0.0 --port $PORT
