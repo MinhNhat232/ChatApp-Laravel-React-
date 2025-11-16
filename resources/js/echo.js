@@ -17,9 +17,7 @@ window.Pusher = Pusher;
 
 window.Echo = new Echo({
     broadcaster: 'pusher',
-    key: import.meta.env.VITE_PUSHER_APP_KEY,
-    cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
+    key: '7caec02240ca68d2c988', // key Pusher bạn gửi
+    cluster: 'ap1',
     forceTLS: true,
-    // Nếu sau này chạy trên http (local) mà Pusher yêu cầu ws, có thể thêm:
-    // encrypted: true,
-})
+});
