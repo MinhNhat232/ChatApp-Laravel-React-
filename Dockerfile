@@ -3,8 +3,8 @@ FROM php:8.2-cli
 # Cài system deps + Node + SQLite dev
 RUN apt-get update && apt-get install -y \
     git unzip libzip-dev libsqlite3-dev sqlite3 npm \
- && docker-php-ext-configure pdo_sqlite --with-pdo-sqlite=/usr \
- && docker-php-ext-install pdo_sqlite zip
+    && docker-php-ext-configure pdo_sqlite --with-pdo-sqlite=/usr \
+    && docker-php-ext-install pdo_sqlite zip
 
 WORKDIR /app
 
