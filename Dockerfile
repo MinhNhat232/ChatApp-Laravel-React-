@@ -22,4 +22,4 @@ RUN npm ci && npm run build
 RUN mkdir -p database && touch database/database.sqlite
 
 # Render sẽ truyền PORT, ta dùng php artisan serve
-CMD php artisan serve --host 0.0.0.0 --port $PORT
+CMD php artisan migrate --force && php artisan serve --host 0.0.0.0 --port $PORT
