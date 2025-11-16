@@ -124,11 +124,12 @@
 /* ========== 💬 CHAT BUBBLE ========== */
 /* ========== 💬 CHAT BUBBLE (Messenger Style) ========== */
 .chat-bubble {
-  max-width: 40%;   
+  max-width: 50%;   
   max-height: 90%;         /* Giới hạn chiều rộng tin nhắn */
 padding-left: 15px;  
     padding-right: 10px;  
-    padding-top: 0%;
+    padding-top: 1px;
+    padding-bottom: 1px;
     border-radius: 1rem;       /* Bo góc mềm mại hơn */
     line-height: 1.4;          /* Cân chỉnh chiều cao dòng */
     font-size: 0.95rem;

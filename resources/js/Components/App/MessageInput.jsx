@@ -121,124 +121,140 @@ const MessageInput = ({ conversation = null, onMessageSent }) => {
 
 
     return (
-        <div className="flex flex-wrap items-start border-t border-slate-700 py-3">
-            <div className='order-2 flex 1:flex-none xs:order-1 p-2'>
-                <button className="p-1 text-gray-400 hover:text-gray-300 relative">
-                    <PaperClipIcon className="w-6" />
-                    <input
-                        type="file"
-                        multiple
-                        onChange={onFileChange}
-                        className="absolute left-0 top-0 right-0 bottom-0 z-20 opacity-0 cursor-pointer"
-                    />
-                </button>
-                <button className="p-1 text-gray-400 hover:text-gray-300 relative">
-                    <PhotoIcon className="w-6" />
-                    <input
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        onChange={onFileChange}
-                        className="absolute left-0 top-0 right-0 bottom-0 z-20 opacity-0 cursor-pointer"
-                    />
-                </button>
-                <AudioRecorder fileReady={recordedAudioReady} />
-            </div>
-            <div className="order-1 px-3 xs:p-0 min-w-[220px] basis-full xs:basis-0 xs:order-2 flex-1 relative">
-                <div className="flex ">
+        <div className="border-t border-slate-700 py-3 px-2">
+            {/* HÀNG TRÊN: input + nút gửi */}
+            <div className="flex items-center gap-2">
+                {/* BÊN TRÁI: Gửi file, ảnh, audio */}
+                <div className="flex items-center gap-2">
+                    <button className="p-1 text-gray-400 hover:text-gray-300 relative">
+                        <PaperClipIcon className="w-6" />
+                        <input
+                            type="file"
+                            multiple
+                            onChange={onFileChange}
+                            className="absolute inset-0 z-20 opacity-0 cursor-pointer"
+                        />
+                    </button>
+
+                    <button className="p-1 text-gray-400 hover:text-gray-300 relative">
+                        <PhotoIcon className="w-6" />
+                        <input
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            onChange={onFileChange}
+                            className="absolute inset-0 z-20 opacity-0 cursor-pointer"
+                        />
+                    </button>
+
+                    <AudioRecorder fileReady={recordedAudioReady} />
+                </div>
+
+                {/* Ô NHẬP TIN NHẮN */}
+                <div className="flex-1 flex items-center relative">
                     <NewMessageInput
                         value={newMessage}
                         onSend={onSendClick}
-                        onChange={(e) => setNewMessage(e.target.value)} />
+                        onChange={(e) => setNewMessage(e.target.value)}
+                    />
                     <button
                         onClick={onSendClick}
                         disabled={messageSending}
-                        className="bg-blue-500 rounded-l-none">
-
-                        <PaperAirplaneIcon className="w-6" />
+                        className="bg-blue-500 rounded-l-none px-3 py-2 flex items-center gap-1 hover:bg-blue-600 transition"
+                    >
+                        <PaperAirplaneIcon className="w-5" />
                         <span className="hidden sm:inline">Send</span>
                     </button>
-                </div>{" "}
+                </div>
+
+                {/* BÊN PHẢI: Emoji + Like */}
+                <div className="flex items-center gap-2">
+                    <Popover className="relative">
+                        <Popover.Button className="p-1 text-gray-400 hover:text-gray-300">
+                            <FaceSmileIcon className="w-6 h-6" />
+                        </Popover.Button>
+                        <Popover.Panel className="absolute z-10 right-0 bottom-full">
+                            <EmojiPicker
+                                theme="dark"
+                                onEmojiClick={(ev) => setNewMessage(newMessage + ev.emoji)}
+                            />
+                        </Popover.Panel>
+                    </Popover>
+
+                    <button
+                        onClick={onLikeClick}
+                        className="p-1 text-gray-400 hover:text-gray-300"
+                    >
+                        <HandThumbUpIcon className="w-6 h-6" />
+                    </button>
+                </div>
+            </div>
+
+            {/* HÀNG DƯỚI: progress, lỗi, preview */}
+            <div className="mt-2">
                 {!!uploadProgress && (
                     <progress
                         className="progress progress-info w-full"
                         value={uploadProgress}
-                        max="100"></progress>
+                        max="100"
+                    ></progress>
                 )}
+
                 {inputErrorMessage && (
-                    <p className="text-xs text-red-400">{inputErrorMessage}</p>
+                    <p className="text-xs text-red-400 mt-1">{inputErrorMessage}</p>
                 )}
-                <div className="flex flex-wrap gap-1 mt-2">
-                    {chosenFiles.map((file) => (
-                        <div
-                            key={file.file.name}
-                            className={
-                                `relative flex justify-between cursor-pointer ` +
-                                (isImage(file.file) ? " w-[70px]" : "")
-                            }
-                        >
-                            {isImage(file.file) && (
-                                <img
-                                    src={file.url}
-                                    alt=""
-                                    className="w-20 h-20 object-cover" // w-16 h-16 tương đương width: 4rem/64px, height: 4rem/64px
-                                />
-                            )}
 
-                            {
-                                isAudio(file.file) && (
-                                    <CustomAudioPlayer
-                                        file={file}
-                                        showVolume={false}
-                                    />
-                                    // <audio src={file.url} controls></audio> // (Dòng này bị comment)
-                                )
-                            }
-                            {
-                                !isAudio(file.file) && !isImage(file.file) && (
-                                    <AttachmentPreview file={file} />
-                                )
-                            }
-
-
-                            <button
-                                onClick={() =>
-                                    setChosenFiles(
-                                        chosenFiles.filter(
-                                            (f) => f.file.name !== file.file.name
-                                        )
-                                    )
+                {/* HIỂN THỊ FILE / ẢNH / AUDIO */}
+                {chosenFiles.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                        {chosenFiles.map((file) => (
+                            <div
+                                key={file.file.name}
+                                className={
+                                    "relative flex justify-between cursor-pointer " +
+                                    (isImage(file.file) ? " w-[70px]" : "")
                                 }
-                                className="absolute w-6 h-6 rounded-full bg-gray-800
-                                -right-2 -top-2 text-gray-300 hover:text-gray-100 z-10"
                             >
-                                <XCircleIcon className="w-6" />
-                            </button>
+                                {/* Hình ảnh */}
+                                {isImage(file.file) && (
+                                    <img
+                                        src={file.url}
+                                        alt=""
+                                        className="w-20 h-20 object-cover rounded-md"
+                                    />
+                                )}
 
-                        </div>
-                    ))}
-                </div>
-            </div>
+                                {/* Âm thanh */}
+                                {isAudio(file.file) && (
+                                    <CustomAudioPlayer file={file} showVolume={false} />
+                                )}
 
-            <div className="order-3 xs:order-3 p-2 flex">
-                <Popover className="relative">
-                    <Popover.Button className="p-1 text-gray-400 hover:text-gray-300">
-                        <FaceSmileIcon className="w-6 h-6" />
-                    </Popover.Button>
-                    <Popover.Panel className="absolute z-10 right-0 bottom-full">
-                        <EmojiPicker
-                            theme="dark"
-                            onEmojiClick={(ev) =>
-                                setNewMessage(newMessage + ev.emoji)
-                            }
-                        />
-                    </Popover.Panel>
-                </Popover>
-                <button onClick={onLikeClick} className="p-1 text-gray-400 hover:text-gray-300">
-                    <HandThumbUpIcon className="w-6 h-6" />
-                </button>
+                                {/* File khác */}
+                                {!isAudio(file.file) && !isImage(file.file) && (
+                                    <AttachmentPreview file={file} />
+                                )}
+
+                                {/* Nút xoá */}
+                                <button
+                                    onClick={() =>
+                                        setChosenFiles(
+                                            chosenFiles.filter(
+                                                (f) => f.file.name !== file.file.name
+                                            )
+                                        )
+                                    }
+                                    className="absolute w-6 h-6 rounded-full bg-gray-800 -right-2 -top-2 text-gray-300 hover:text-gray-100 z-10"
+                                >
+                                    <XCircleIcon className="w-6" />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );
+
+
 }
 export default MessageInput;
