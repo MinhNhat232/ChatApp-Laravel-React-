@@ -20,7 +20,7 @@ export default function MessageOptionsDropdown({ message }) {
         axios
             .delete(route("message.destroy", message.id))
             .then((res) => {
-                emit('message.deleted', message);
+                emit('message.deleted', res.data);
             })
             .catch((err) => {
                 console.error(err);

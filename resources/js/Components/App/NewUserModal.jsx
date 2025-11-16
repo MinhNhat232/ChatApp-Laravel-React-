@@ -1,4 +1,4 @@
-import { useForm, usePage } from "@inertiajs/react";
+import { router, useForm, usePage } from "@inertiajs/react";
 import { useEffect, useState } from "react";
 import Modal from "../Modal";
 import InputLabel from "../InputLabel";
@@ -28,6 +28,7 @@ export default function NewUserModal({ show = false, onClose = () => { } }) {
 
         post(route("user.store"), {
             onSuccess: () => {
+                router.reload({ only: ['conversations'] });
                 emit("toast.show", `User "${data.name}" was created`)
                 closeModal();
             },

@@ -17,16 +17,22 @@ class MessageResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $deleted = (bool) $this->deleted_at;
+
         return [
             'id' => $this->id,
-            'message' => $this->message,
+            'message' => $deleted ? null : $this->message,
             'sender_id' => $this->sender_id,
             'receiver_id' => $this->receiver_id,
             'sender' => new UserResource($this->sender),
             'group_id' => $this->group_id,
-            'attachments' => MessageAttachmentResource::collection($this->attachments),
+            'attachments' => $deleted ? [] : MessageAttachmentResource::collection($this->attachments),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
+            'deleted_at' => $this->deleted_at,
+            'deleted_label' => $deleted ? __('Message deleted') : null,
+            'type' => $this->type,
+            'meta' => $this->meta,
         ];
     }
 }

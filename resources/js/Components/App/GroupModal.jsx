@@ -1,4 +1,4 @@
-import { useForm, usePage } from "@inertiajs/react";
+import { router, useForm, usePage } from "@inertiajs/react";
 import { useEffect, useState } from "react";
 import Modal from "../Modal";
 import InputLabel from "../InputLabel";
@@ -33,6 +33,7 @@ export default function GroupModal({ show = false, onClose = () => { } }) {
         if (group.id) {
             put(route("group.update", group.id), {
                 onSuccess: () => {
+                    router.reload({ only: ['conversations'] });
                     closeModal();
                     emit("toast.show", `Group "${data.name}" was updated`);
                 },
@@ -41,6 +42,7 @@ export default function GroupModal({ show = false, onClose = () => { } }) {
         }
         post(route("group.store"), {
             onSuccess: () => {
+                router.reload({ only: ['conversations'] });
                 emit("toast.show", `Group "${data.name}" was created`)
                 closeModal();
             },
