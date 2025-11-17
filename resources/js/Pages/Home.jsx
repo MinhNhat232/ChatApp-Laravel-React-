@@ -11,70 +11,118 @@ import axios from 'axios';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 
-function Home({ selectedConversation = null, messages = null }) {
+function Home({ selectedConversation = null }) {
     const [localMessage, setLocalMessage] = useState([]);
     const [noMoreMessages, setNoMoreMessage] = useState(false);
     const [scrollFromBottom, setScrollFromBottom] = useState(0);
     const [showAttachmentPreview, setShowAttachmentPreview] = useState(false);
     const [previewAttachment, setPreviewAttachment] = useState({});
+    const [messagesLoading, setMessagesLoading] = useState(false);
     const messagesCtrRef = useRef(null);
     const loadMoreIntersect = useRef(null);
     const { on } = useEventBus();
 
-    const messageCreated = (message) => {
+    const fetchMessages = useCallback(
+        async ({ beforeId = null, replace = false } = {}) => {
+            if (!selectedConversation) {
+                return;
+            }
 
-        if (selectedConversation && selectedConversation.is_group && selectedConversation.id === message.group_id) {
-            setLocalMessage((prevMessages) => [...prevMessages, message]);
-        }
-        if (selectedConversation && selectedConversation.is_user && (selectedConversation.id === message.sender_id || selectedConversation.id === message.receiver_id)) {
-            setLocalMessage((prevMessages) => [...prevMessages, message]);
+            setMessagesLoading(true);
+
+            try {
+                const params = {};
+                if (beforeId) {
+                    params.before_id = beforeId;
+                }
+
+                const type = selectedConversation.is_group ? 'group' : 'user';
+                const url = route('api.conversation.messages', {
+                    type,
+                    id: selectedConversation.id,
+                });
+
+                const { data } = await axios.get(url, { params });
+                const payload = data.data.reverse();
+
+                setLocalMessage((prev) => {
+                    if (replace) {
+                        return payload;
+                    }
+                    const merged = [...payload, ...prev];
+                    const unique = new Map();
+                    merged.forEach((msg) => {
+                        if (msg?.id) {
+                            unique.set(msg.id, msg);
+                        }
+                    });
+                    return [...unique.values()];
+                });
+
+                if (payload.length === 0) {
+                    setNoMoreMessage(true);
+                }
+            } catch (error) {
+                console.error('Unable to load messages', error);
+            } finally {
+                setMessagesLoading(false);
+            }
+        },
+        [selectedConversation],
+    );
+
+    const messageCreated = (message) => {
+        const related =
+            (selectedConversation?.is_group && selectedConversation.id === message.group_id) ||
+            (selectedConversation?.is_user &&
+                (selectedConversation.id === message.sender_id ||
+                    selectedConversation.id === message.receiver_id));
+
+        if (related) {
+            setLocalMessage((prevMessages) => {
+                const exists = prevMessages.find((m) => m.id === message.id);
+                if (exists) {
+                    return prevMessages.map((m) => (m.id === message.id ? message : m));
+                }
+                return [...prevMessages, message];
+            });
         }
     };
 
 
     const messageDeleted = (message) => {
+        const related =
+            (selectedConversation?.is_group && selectedConversation.id === message.group_id) ||
+            (selectedConversation?.is_user &&
+                (selectedConversation.id === message.sender_id ||
+                    selectedConversation.id === message.receiver_id));
 
-        if (selectedConversation && selectedConversation.is_group && selectedConversation.id === message.group_id) {
-            setLocalMessage((prevMessages) => {
-                return prevMessages.filter((m) => m.id !== message.id);
-            });
+        if (!related) {
+            return;
         }
-        if (selectedConversation && selectedConversation.is_user && (selectedConversation.id === message.sender_id || selectedConversation.id === message.receiver_id)) {
-            setLocalMessage((prevMessages) => {
-                return prevMessages.filter((m) => m.id !== message.id);
-            });
-        }
+
+        setLocalMessage((prevMessages) =>
+            prevMessages.map((m) =>
+                m.id === message.id
+                    ? {
+                        ...m,
+                        ...message,
+                    }
+                    : m,
+            ),
+        );
     };
 
 
 
     const loadMoreMessages = useCallback(() => {
-
-        if (noMoreMessages) {
+        if (noMoreMessages || messagesLoading || localMessage.length === 0) {
             return;
         }
 
         const firstMessage = localMessage[0];
-        axios
-            .get(route("message.loadOlder", firstMessage.id))
-            .then(({ data }) => {
-                if (data.data.length === 0) {
-                    setNoMoreMessage(true);
-                    return;
-                }
-
-                const scrollHeight = messagesCtrRef.current.scrollHeight;
-                const scrollTop = messagesCtrRef.current.scrollTop;
-                const clientHeight = messagesCtrRef.current.clientHeight;
-                const tmpScrollFromBottom = scrollHeight - scrollTop - clientHeight;
-                console.log("tmpSCrollFromBottom ", tmpScrollFromBottom);
-                setScrollFromBottom(scrollHeight - scrollTop - clientHeight);
-
-                setLocalMessage((prevMessages) => {
-                    return [...data.data.reverse(), ...prevMessages];
-                });
-            });
-    }, [localMessage, noMoreMessages]);
+        fetchMessages({ beforeId: firstMessage.id });
+    }, [fetchMessages, localMessage, messagesLoading, noMoreMessages]);
 
     const onAttachmentClick = (attachments, ind) => {
         setPreviewAttachment({
@@ -106,8 +154,13 @@ function Home({ selectedConversation = null, messages = null }) {
 
 
     useEffect(() => {
-        setLocalMessage(messages ? messages.data.reverse() : []);
-    }, [messages]);
+        setLocalMessage([]);
+        setNoMoreMessage(false);
+
+        if (selectedConversation) {
+            fetchMessages({ replace: true });
+        }
+    }, [fetchMessages, selectedConversation]);
 
     useEffect(() => {
         if (messagesCtrRef.current && scrollFromBottom !== null) {
@@ -145,7 +198,7 @@ function Home({ selectedConversation = null, messages = null }) {
 
     return (
         <>
-            {!messages && (
+            {!selectedConversation && (
                 <div className='flex flex-col gap-8 justify-center items-center text-center
             h-full opacity-35'>
                     <div className='text-2xl md:text-4xl p-16 text-slate-200'>
@@ -155,13 +208,19 @@ function Home({ selectedConversation = null, messages = null }) {
                     <ChatBubbleLeftRightIcon className='w-32 h-32 inline-block text-slate-200' />
                 </div>
             )}
-            {messages && (
+            {selectedConversation && (
                 <>
                     <ConversationHeader
                         selectedConversation={selectedConversation}
                     />
                     <div ref={messagesCtrRef} className='flex-1 overflow-y-auto p-5'>
-                        {localMessage.length === 0 && (
+                        {messagesLoading && localMessage.length === 0 && (
+                            <div className='flex justify-center items-center h-full text-slate-200'>
+                                Loading messages...
+                            </div>
+                        )}
+
+                        {!messagesLoading && localMessage.length === 0 && (
                             <div className='flex justify-center items-center h-full'>
                                 <div className='text-lg text-slate-200'>
                                     No messages found
@@ -180,6 +239,7 @@ function Home({ selectedConversation = null, messages = null }) {
                                         <MessageItem
                                             key={message.id}
                                             message={message}
+                                            conversation={selectedConversation}
                                             attachmentClick={onAttachmentClick}
                                         />
                                     ))}

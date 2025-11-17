@@ -1,0 +1,56 @@
+# Stage 1: Build Node.js frontend
+FROM node:20-alpine AS node-builder
+WORKDIR /build
+COPY src/package*.json ./
+RUN npm ci
+COPY src/ .
+RUN npm run build
+
+# Stage 2: PHP-FPM with Composer
+FROM php:8.2-fpm-alpine
+
+WORKDIR /var/www/html
+
+# Install system dependencies
+RUN apk update && apk add --no-cache \
+    linux-headers \
+    libzip-dev \
+    mariadb-connector-c-dev \
+    libexif-dev \
+    zlib-dev \
+    oniguruma-dev \
+    openssl-dev \
+    bash \
+    git \
+    curl \
+    && rm -rf /var/cache/apk/*
+
+# Install PHP extensions
+RUN docker-php-ext-install \
+    pdo_mysql \
+    bcmath \
+    sockets \
+    exif \
+    pcntl \
+    opcache \
+    zip
+
+# Copy Composer from official image
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Copy Laravel source
+COPY src/ /var/www/html
+
+# Copy built frontend assets from Node builder stage
+COPY --from=node-builder /build/public/build /var/www/html/public/build
+
+# Install Composer dependencies (production only)
+RUN composer install --no-dev --optimize-autoloader --no-interaction
+
+# Set proper permissions
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+
+# Expose FPM port
+EXPOSE 9000
+
+CMD ["php-fpm"]

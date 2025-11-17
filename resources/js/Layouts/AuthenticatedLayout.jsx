@@ -10,13 +10,15 @@ import { useEventBus } from '@/EventBus';
 import { UserPlusIcon } from '@heroicons/react/24/solid';
 import { Link, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
+import { CallProvider, useCall } from '@/CallContext';
 
-export default function AuthenticatedLayout({ header, children }) {
+function AuthenticatedLayoutContent({ header, children }) {
     const page = usePage();
     const user = page.props.auth.user;
     const conversations = page.props.conversations;
 
     const { emit } = useEventBus();
+    const { handleIncomingSignal } = useCall();
 
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] = useState(false);
@@ -24,9 +26,16 @@ export default function AuthenticatedLayout({ header, children }) {
     useEffect(() => {
         conversations.forEach((conversation) => {
             let channel = `message.group.${conversation.id}`;
+            let callChannel = `call.group.${conversation.id}`;
 
             if (conversation.is_user) {
                 channel = `message.user.${[
+                    parseInt(user.id),
+                    parseInt(conversation.id),
+                ]
+                    .sort((a, b) => a - b)
+                    .join("-")}`;
+                callChannel = `call.user.${[
                     parseInt(user.id),
                     parseInt(conversation.id),
                 ]
@@ -60,6 +69,15 @@ export default function AuthenticatedLayout({ header, children }) {
                                 : message.attachments.length + " attachments"
                             }`,
                     });
+                })
+                .listen("MessageDeleted", (e) => {
+                    emit("message.deleted", e.message);
+                });
+
+            Echo.private(callChannel)
+                .error((error) => console.error(error))
+                .listen("CallSignal", (payload) => {
+                    handleIncomingSignal(payload);
                 });
 
             if (conversation.is_group) {
@@ -78,6 +96,7 @@ export default function AuthenticatedLayout({ header, children }) {
         return () => {
             conversations.forEach((conversation) => {
                 let channel = `message.group.${conversation.id}`;
+                let callChannel = `call.group.${conversation.id}`;
 
                 if (conversation.is_user) {
                     channel = `message.user.${[
@@ -86,16 +105,23 @@ export default function AuthenticatedLayout({ header, children }) {
                     ]
                         .sort((a, b) => a - b)
                         .join("-")}`;
+                    callChannel = `call.user.${[
+                        parseInt(user.id),
+                        parseInt(conversation.id),
+                    ]
+                        .sort((a, b) => a - b)
+                        .join("-")}`;
                 }
 
                 Echo.leave(channel);
+                Echo.leave(callChannel);
 
                 if (conversation.is_group) {
                     Echo.leave(`group.deleted.${conversation.id}`);
                 }
             });
         };
-    }, [conversations])
+    }, [conversations, handleIncomingSignal])
 
     return (
         <>
@@ -270,5 +296,13 @@ export default function AuthenticatedLayout({ header, children }) {
             <NewMessageNotification />
             <NewUserModal show={showNewUserModal} onClose={(ev) => setShowNewUserModal(false)} />
         </>
+    );
+}
+
+export default function AuthenticatedLayout(props) {
+    return (
+        <CallProvider>
+            <AuthenticatedLayoutContent {...props} />
+        </CallProvider>
     );
 }

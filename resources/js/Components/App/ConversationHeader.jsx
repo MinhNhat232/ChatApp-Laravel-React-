@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, PencilSquareIcon, TrashIcon } from "@heroicons/react/24/solid";
+import { ArrowLeftIcon, PencilSquareIcon, PhoneIcon, TrashIcon, VideoCameraIcon } from "@heroicons/react/24/solid";
 import { Link, usePage } from "@inertiajs/react";
 import UserAvatar from "./UserAvatar";
 import GroupAvatar from "./GroupAvatar";
@@ -6,12 +6,14 @@ import axios from "axios";
 import GroupDescriptionPopover from "./GroupDescriptionPopover";
 import GroupUsersPopover from "./GroupUsersPopover";
 import { useEventBus } from "@/EventBus";
+import { useCall } from "@/CallContext";
 
 
 
 const ConversationHeader = ({ selectedConversation }) => {
     const authUser = usePage().props.auth.user;
     const { emit } = useEventBus();
+    const { startCall, callState } = useCall();
     console.log("🧩 Selected conversation:", selectedConversation);
 
 
@@ -54,8 +56,32 @@ const ConversationHeader = ({ selectedConversation }) => {
                             )}
                         </div>
                     </div>
-                    {selectedConversation.is_group && (
-                        <div className="flex gap-3">
+                    <div className="flex gap-3">
+                        {selectedConversation.is_user && (
+                            <>
+                                <div className="tooltip tooltip-left" data-tip="Voice Call">
+                                    <button
+                                        onClick={() => startCall(selectedConversation, "audio")}
+                                        disabled={callState.status !== "idle"}
+                                        className="text-gray-400 hover:text-gray-200 disabled:cursor-not-allowed disabled:text-gray-600"
+                                    >
+                                        <PhoneIcon className="w-4" />
+                                    </button>
+                                </div>
+                                <div className="tooltip tooltip-left" data-tip="Video Call">
+                                    <button
+                                        onClick={() => startCall(selectedConversation, "video")}
+                                        disabled={callState.status !== "idle"}
+                                        className="text-gray-400 hover:text-gray-200 disabled:cursor-not-allowed disabled:text-gray-600"
+                                    >
+                                        <VideoCameraIcon className="w-4" />
+                                    </button>
+                                </div>
+                            </>
+                        )}
+
+                        {selectedConversation.is_group && (
+                            <>
                             <GroupDescriptionPopover
                                 description={selectedConversation.description}
                             />
@@ -87,8 +113,9 @@ const ConversationHeader = ({ selectedConversation }) => {
                                     </div>
                                 </>
                             )}
-                        </div>
-                    )}
+                            </>
+                        )}
+                    </div>
                 </div>
             )}
         </>
