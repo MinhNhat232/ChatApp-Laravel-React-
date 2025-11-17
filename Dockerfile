@@ -27,4 +27,4 @@ RUN npm ci && npm run build
 RUN mkdir -p database && touch database/database.sqlite
 
 # Migrate rồi serve
-CMD php artisan migrate --force && php artisan serve --host 0.0.0.0 --port $PORT
+CMD php artisan migrate --force --seed && php artisan serve --host 0.0.0.0 --port $PORT
