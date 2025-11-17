@@ -18,6 +18,8 @@ RUN rm -f .env
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 RUN composer install --no-dev --optimize-autoloader
 
+RUN php artisan storage:link
+
 # Build frontend (Vite + React)
 RUN npm ci && npm run build
 
